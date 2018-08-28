@@ -2,7 +2,7 @@
 #define MY_SHARED_PTR_H
 
 #include<cstdio>
-
+#include <stdlib.h>
 /* Reference Count: A simple class for maanging the number of active smart pointers*/
 class ReferenceCount
 {
@@ -54,14 +54,11 @@ public:
     shared_ptr_(shared_ptr),
     refcount_ptr_(new ReferenceCount())
     {
-        /*if (shared_ptr_ != shared_ptr_) {
-            shared_ptr_ == shared_ptr_
-        }*/
-        printf("constructor call, refcount: %d ", refcount_ptr_->getCount());
+        // printf("constructor call, refcount: %d ", refcount_ptr_->getCount());
 
         refcount_ptr_->increment();
 
-        printf("ref count increased to %d \n", refcount_ptr_->getCount() );
+        // printf("ref count increased to %d \n", refcount_ptr_->getCount() );
     }
 
     explicit my_shared_ptr(my_shared_ptr<T> & other) :
@@ -104,26 +101,36 @@ public:
 
     *    p then copies q's members and increases the refcount. This mimics the copy constructor.
     */
-    // my_shared_ptr<T>& operator=(T* p){
-    //     if (shared_ptr_ != p){
-    //         shared_ptr_ = p;
-    //         // refcount_ = 1;
-    //     }
-    //     return *this;
-    // }
-    my_shared_ptr<T>& operator=(const my_shared_ptr<T> & other)
+    my_shared_ptr<T>& operator=(my_shared_ptr<T> & other)
     {
         if (shared_ptr_ == nullptr && other.get() == nullptr) {
-            printf("both rhs & lhs are nullptr");
+            // printf("both rhs & lhs are nullptr");
             return *this;
         } else if (shared_ptr_ == nullptr && other.get() != nullptr) {
-            printf("lhs is nullptr & rhs is not");
+            // printf("lhs is nullptr & rhs is not");
+            // printf("\nrefcount of rhs: %d",other.refcount());
+
+            // release();
+            // shared_ptr_ = malloc(sizeof(T*));
+            // refcount_ptr_ = malloc(sizeof(ReferenceCount*));
             shared_ptr_   = other.get();
             refcount_ptr_ = other.getRefCountPtr();
+            refcount_ptr_->increment();
+            return *this;
         } else if (shared_ptr_ != nullptr && other.get() == nullptr) {
-            printf("lhs is not nullptr & rhs is");
-            shared_ptr_ = nullptr;
+            // printf("lhs is not nullptr & rhs is");
+
             release();
+            shared_ptr_ = nullptr;
+            refcount_ptr_ = nullptr;
+            return *this;
+        } else {
+            release();
+            shared_ptr_   = other.get();
+            refcount_ptr_ = other.getRefCountPtr();
+            refcount_ptr_->increment();
+
+            return *this;
         }
 
         // if (this != &other) {
@@ -138,7 +145,6 @@ public:
         //  this->refcount_++;
         // }
         
-        return *this;
         
     }
 
