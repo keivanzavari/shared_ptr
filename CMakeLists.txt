@@ -7,8 +7,8 @@ include_directories(src)
 # add_library(${PROJECT_NAME} SHARED src/my_shared_ptr.cpp)
 
 add_executable(tests tests/tests.cpp
-    tests/01-tests.cpp
-    tests/02-tests.cpp
+    # tests/01-tests.cpp
+    # tests/02-tests.cpp
     # tests/03-tests.cpp
     # tests/04-tests.cpp
     # tests/05-tests.cpp

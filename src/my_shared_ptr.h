@@ -3,53 +3,97 @@
 
 #include<cstdio>
 
+/* Reference Count: A simple class for maanging the number of active smart pointers*/
+class ReferenceCount
+{
+private:
+    int refcount_{ 0 };
+public:
+
+    ReferenceCount() {refcount_=0;}
+    void increment()
+    {
+        ++refcount_;
+    }
+    int decrement()
+    {
+        return --refcount_;
+    }
+    int getCount() const
+    {
+        return refcount_;
+    }
+};
+
+
 template<typename T>
 class my_shared_ptr
 {
 private:
-	T* shared_ptr_;
-	static int refcount_ ;
+    T* shared_ptr_ ;
+    ReferenceCount* refcount_ptr_;
 
+
+    void release() {
+        if (refcount_ptr_) {
+            refcount_ptr_->decrement();
+            if (refcount_ptr_->getCount() <= 0) {
+                delete refcount_ptr_;
+                delete shared_ptr_;
+            }
+        }
+    }
+
+    ReferenceCount * getRefCountPtr() const {
+        return refcount_ptr_;
+    }
 public:
-	my_shared_ptr() : shared_ptr_(nullptr) {  }
+    my_shared_ptr(): shared_ptr_(nullptr), refcount_ptr_(nullptr) {}
 
-	my_shared_ptr(T* shared_ptr) : shared_ptr_(shared_ptr) {
-		/*if (shared_ptr_ != shared_ptr_) {
-			shared_ptr_ == shared_ptr_
-		}*/
-		printf("constructor call, refcount: %d", refcount_);
+    explicit my_shared_ptr(T* shared_ptr) : 
+    shared_ptr_(shared_ptr),
+    refcount_ptr_(new ReferenceCount())
+    {
+        /*if (shared_ptr_ != shared_ptr_) {
+            shared_ptr_ == shared_ptr_
+        }*/
+        printf("constructor call, refcount: %d ", refcount_ptr_->getCount());
 
-		refcount_++;
+        refcount_ptr_->increment();
 
-		printf("ref count increased to %d \n", refcount_);
-	}
+        printf("ref count increased to %d \n", refcount_ptr_->getCount() );
+    }
 
-	~my_shared_ptr() {
-		refcount_--;
-		if (refcount_ <= 0) {
-			refcount_ = 0;
-			delete shared_ptr_;
-		}
-	}
+    explicit my_shared_ptr(my_shared_ptr<T> & other) :
+    shared_ptr_{ other.shared_ptr_ } ,
+    refcount_ptr_{ other.refcount_ptr_ }
+    {
+        // shared_ptr_ = ptr.get();
+        if (refcount_ptr_ != nullptr)
+            refcount_ptr_->increment();
+            // printf("ref count is nullptr" );
+            // refcount_ptr_ = new ReferenceCount();
 
-	my_shared_ptr(my_shared_ptr & ptr) {
-		this->shared_ptr_ = ptr.get();
-		refcount_++;
-	}
+    }
+
+    ~my_shared_ptr() {
+        release();
+    }
 
 
-	T* get() const { return shared_ptr_; }
-	int refcount() { return refcount_; }
 
-	T & operator*() const
-	{
-		return  *shared_ptr_;
-	}
-	T* operator->() {
-		return shared_ptr_;
-	}
-	
-	/*
+    T* get() const { return shared_ptr_; }
+    int refcount() { return refcount_ptr_->getCount(); }
+
+    T & operator*() const
+    {
+        return  *shared_ptr_;
+    }
+    T* operator->() {
+        return shared_ptr_;
+    }
+    
+    /*
     Overload the operator =.
     When overwriting one my_shared_ptr with another one (p = q), the following steps
     need to be taken:
@@ -59,26 +103,51 @@ public:
          In other words, this steps mimics the destructor.
 
     *    p then copies q's members and increases the refcount. This mimics the copy constructor.
-	*/
-	void operator=(const my_shared_ptr<T> & other)
-	{
-		refcount_--;
-		if (refcount_ <= 0) {
-			refcount_ = 0;
-			// delete shared_ptr_;
-			// shared_ptr_ = nullptr;
-		}
+    */
+    // my_shared_ptr<T>& operator=(T* p){
+    //     if (shared_ptr_ != p){
+    //         shared_ptr_ = p;
+    //         // refcount_ = 1;
+    //     }
+    //     return *this;
+    // }
+    my_shared_ptr<T>& operator=(const my_shared_ptr<T> & other)
+    {
+        if (shared_ptr_ == nullptr && other.get() == nullptr) {
+            printf("both rhs & lhs are nullptr");
+            return *this;
+        } else if (shared_ptr_ == nullptr && other.get() != nullptr) {
+            printf("lhs is nullptr & rhs is not");
+            shared_ptr_   = other.get();
+            refcount_ptr_ = other.getRefCountPtr();
+        } else if (shared_ptr_ != nullptr && other.get() == nullptr) {
+            printf("lhs is not nullptr & rhs is");
+            shared_ptr_ = nullptr;
+            release();
+        }
 
-		this->shared_ptr_ = other.get();
-		refcount_++;
-	}
+        // if (this != &other) {
+        //  // this->refcount_--;
+        //  if (refcount_ <= 0) {
+        //      refcount_ = 0;
+        //      delete shared_ptr_;
+        //      // shared_ptr_ = nullptr;
+        //  }
+
+        //  this->shared_ptr_ = other.get();
+        //  this->refcount_++;
+        // }
+        
+        return *this;
+        
+    }
 
 };
 
 
 
 
-template<typename T>
-int my_shared_ptr<T>::refcount_ = 0;
+// template<typename T>
+// int my_shared_ptr<T>::refcount_ = 0;
 
 #endif // !MY_SHARED_PTR_H
