@@ -1,3 +1,4 @@
+## custom shared pointer class with intensive testing
 
 ## how to run everything
 
